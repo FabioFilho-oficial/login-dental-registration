@@ -1,6 +1,6 @@
 /**
  * DentalCare – Portal do Paciente
- * Lógica de: abas, validação, localStorage, toast e guia por voz
+ * Lógica de: abas, validação, localStorage, toast e guia por voz contínuo
  */
 
 (function () {
@@ -10,17 +10,14 @@
    * Utilitários gerais
    * ────────────────────────────────────────────────────── */
 
-  /** Atalho para document.getElementById */
   const $ = id => document.getElementById(id);
 
-  /** Anuncia mensagem para leitores de tela via live region */
   function announce(msg) {
     const live = $('live-region');
     live.textContent = '';
     requestAnimationFrame(() => { live.textContent = msg; });
   }
 
-  /** Sintetiza fala em português */
   function speak(text) {
     if (!window.speechSynthesis) return;
     speechSynthesis.cancel();
@@ -36,20 +33,13 @@
 
   let toastTimer;
 
-  /**
-   * Exibe uma notificação toast.
-   * @param {string} msg   - Texto da mensagem
-   * @param {'success'|'error'} type
-   */
   function showToast(msg, type = 'success') {
     const toast    = $('toast');
     const toastMsg = $('toast-msg');
     const icon     = toast.querySelector('.toast-icon');
-
-    icon.textContent  = type === 'success' ? '✅' : '❌';
+    icon.textContent     = type === 'success' ? '✅' : '❌';
     toastMsg.textContent = msg;
-    toast.className   = `show ${type}`;
-
+    toast.className      = `show ${type}`;
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => { toast.className = ''; }, 3800);
     announce(msg);
@@ -64,10 +54,6 @@
   const panelLogin    = $('panel-login');
   const panelCadastro = $('panel-cadastro');
 
-  /**
-   * Troca o painel ativo.
-   * @param {boolean} toLogin - true = login | false = cadastro
-   */
   function switchTab(toLogin) {
     if (toLogin) {
       tabLogin.setAttribute('aria-selected', 'true');
@@ -80,8 +66,7 @@
       panelCadastro.setAttribute('hidden', '');
       clearForm('login');
       const msg = 'Formulário de login ativado';
-      announce(msg);
-      speak(msg);
+      announce(msg); speak(msg);
     } else {
       tabCadastro.setAttribute('aria-selected', 'true');
       tabCadastro.tabIndex = 0;
@@ -93,15 +78,13 @@
       panelLogin.setAttribute('hidden', '');
       clearForm('cadastro');
       const msg = 'Formulário de cadastro ativado';
-      announce(msg);
-      speak(msg);
+      announce(msg); speak(msg);
     }
   }
 
   tabLogin.addEventListener('click', () => switchTab(true));
   tabCadastro.addEventListener('click', () => switchTab(false));
 
-  // Navegação por setas do teclado no tablist (WCAG 2.1 – padrão de design de abas)
   [tabLogin, tabCadastro].forEach(btn => {
     btn.addEventListener('keydown', e => {
       if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
@@ -130,12 +113,6 @@
    * Validação de campos
    * ────────────────────────────────────────────────────── */
 
-  /**
-   * Aplica ou remove estado de erro em um campo.
-   * @param {HTMLInputElement} inputEl
-   * @param {HTMLElement} msgEl
-   * @param {string} msg - Vazio = sem erro
-   */
   function setFieldError(inputEl, msgEl, msg) {
     if (msg) {
       inputEl.classList.add('invalid');
@@ -146,7 +123,6 @@
     }
   }
 
-  /** Reseta formulário e limpa estados de erro */
   function clearForm(which) {
     if (which === 'login') {
       $('form-login').reset();
@@ -180,31 +156,24 @@
   $('form-login').addEventListener('submit', e => {
     e.preventDefault();
     let ok = true;
-
     const email = $('login-email').value.trim();
     const senha = $('login-senha').value;
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setFieldError($('login-email'), $('login-email-msg'), 'Informe um e-mail válido.');
       ok = false;
-    } else {
-      setFieldError($('login-email'), $('login-email-msg'), '');
-    }
+    } else { setFieldError($('login-email'), $('login-email-msg'), ''); }
 
     if (!senha) {
       setFieldError($('login-senha'), $('login-senha-msg'), 'Informe sua senha.');
       ok = false;
-    } else {
-      setFieldError($('login-senha'), $('login-senha-msg'), '');
-    }
+    } else { setFieldError($('login-senha'), $('login-senha-msg'), ''); }
 
     if (!ok) return;
 
-    // Simula latência de chamada à API
     setTimeout(() => {
       const users = getUsers();
       const user  = users.find(u => u.email === email && u.senha === senha);
-
       if (user) {
         showToast(`Bem-vindo(a), ${user.nome}! Login realizado com sucesso.`, 'success');
         speak(`Bem-vindo de volta, ${user.nome}!`);
@@ -224,7 +193,6 @@
   $('form-cadastro').addEventListener('submit', e => {
     e.preventDefault();
     let ok = true;
-
     const nome      = $('cad-nome').value.trim();
     const email     = $('cad-email').value.trim();
     const senha     = $('cad-senha').value;
@@ -233,44 +201,33 @@
     if (!nome || nome.length < 3) {
       setFieldError($('cad-nome'), $('cad-nome-msg'), 'Informe seu nome completo.');
       ok = false;
-    } else {
-      setFieldError($('cad-nome'), $('cad-nome-msg'), '');
-    }
+    } else { setFieldError($('cad-nome'), $('cad-nome-msg'), ''); }
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setFieldError($('cad-email'), $('cad-email-msg'), 'Informe um e-mail válido.');
       ok = false;
-    } else {
-      setFieldError($('cad-email'), $('cad-email-msg'), '');
-    }
+    } else { setFieldError($('cad-email'), $('cad-email-msg'), ''); }
 
     if (!senha || senha.length < 6) {
       setFieldError($('cad-senha'), $('cad-senha-msg'), 'A senha deve ter no mínimo 6 caracteres.');
       ok = false;
-    } else {
-      setFieldError($('cad-senha'), $('cad-senha-msg'), '');
-    }
+    } else { setFieldError($('cad-senha'), $('cad-senha-msg'), ''); }
 
     if (senha !== confirmar) {
       setFieldError($('cad-confirmar'), $('cad-confirmar-msg'), 'As senhas não coincidem.');
       ok = false;
-    } else {
-      setFieldError($('cad-confirmar'), $('cad-confirmar-msg'), '');
-    }
+    } else { setFieldError($('cad-confirmar'), $('cad-confirmar-msg'), ''); }
 
     if (!ok) return;
 
-    // Simula latência de chamada à API
     setTimeout(() => {
       const users = getUsers();
-
       if (users.find(u => u.email === email)) {
         showToast('Este e-mail já está cadastrado. Faça login.', 'error');
         speak('Este e-mail já está cadastrado.');
         setFieldError($('cad-email'), $('cad-email-msg'), 'E-mail já cadastrado.');
         return;
       }
-
       users.push({ nome, email, senha });
       saveUsers(users);
       showToast(`Conta criada com sucesso! Bem-vindo(a), ${nome}!`, 'success');
@@ -281,146 +238,275 @@
   });
 
   /* ──────────────────────────────────────────────────────
-   * Guia por Voz – Web Speech API
+   * Navegação entre campos por voz
    * ────────────────────────────────────────────────────── */
 
-  const voiceBtn    = $('voice-btn');
-  const voiceStatus = $('voice-status');
-  let recognition   = null;
-  let isListening   = false;
+  /**
+   * Retorna os elementos focáveis do painel visível,
+   * na ordem de leitura (top → bottom).
+   */
+  function getFocusableElements() {
+    const activePanel = panelLogin.classList.contains('active')
+      ? panelLogin
+      : panelCadastro;
 
-  function setVoiceStatus(msg, visible = true) {
-    voiceStatus.textContent = msg;
-    voiceStatus.classList.toggle('visible', visible);
+    return Array.from(
+      activePanel.querySelectorAll(
+        'input, button:not(.pwd-toggle), [tabindex]:not([tabindex="-1"])'
+      )
+    ).filter(el => !el.disabled && el.offsetParent !== null);
   }
 
   /**
-   * Interpreta o transcript e executa a ação correspondente.
-   * @param {string} text - Texto reconhecido pelo microfone
+   * Retorna o nome legível de um elemento focável.
+   * @param {HTMLElement} el
    */
-  function voiceAction(text) {
-    const t = text.toLowerCase().trim();
+  function getFieldName(el) {
+    // Tenta label associado
+    if (el.id) {
+      const lbl = document.querySelector(`label[for="${el.id}"]`);
+      if (lbl) return lbl.textContent.trim();
+    }
+    // aria-label
+    if (el.getAttribute('aria-label')) return el.getAttribute('aria-label');
+    // placeholder
+    if (el.placeholder) return el.placeholder;
+    // botão: texto interno
+    if (el.tagName === 'BUTTON') return el.textContent.trim();
+    return 'campo';
+  }
 
-    if (t.includes('login') || (t.includes('entrar') && t.includes('ir'))) {
-      speak('Indo para login');
-      switchTab(true);
-      tabLogin.focus();
-    } else if (t.includes('cadastro') || (t.includes('cadastrar') && t.includes('ir'))) {
-      speak('Indo para cadastro');
-      switchTab(false);
-      tabCadastro.focus();
-    } else if (t === 'nome' || t.includes('campo nome')) {
-      const el = $('cad-nome');
-      if (!el.closest('[hidden]')) {
-        el.focus();
-        speak('Campo nome focado');
-      } else {
-        speak('Vá para o formulário de cadastro primeiro.');
-      }
-    } else if (t === 'email' || t.includes('campo email') || t.includes('e-mail')) {
-      const el = panelLogin.classList.contains('active') ? $('login-email') : $('cad-email');
-      el.focus();
-      speak('Campo e-mail focado');
-    } else if ((t === 'senha' || t.includes('campo senha')) && !t.includes('confirmar')) {
-      const el = panelLogin.classList.contains('active') ? $('login-senha') : $('cad-senha');
-      el.focus();
-      speak('Campo senha focado');
-    } else if (t.includes('confirmar') || t.includes('confirma')) {
-      const el = $('cad-confirmar');
-      if (!el.closest('[hidden]')) {
-        el.focus();
-        speak('Campo confirmar senha focado');
-      } else {
-        speak('Vá para o cadastro primeiro.');
-      }
-    } else if (t === 'entrar' || t.includes('fazer login') || t.includes('logar')) {
-      if (panelLogin.classList.contains('active')) {
-        speak('Tentando entrar');
-        $('btn-entrar').click();
-      } else {
-        speak('Vá para o login primeiro.');
-      }
-    } else if (t === 'cadastrar' || t.includes('criar conta')) {
-      if (panelCadastro.classList.contains('active')) {
-        speak('Enviando cadastro');
-        $('btn-cadastrar').click();
-      } else {
-        speak('Vá para o cadastro primeiro.');
-      }
-    } else if (t === 'limpar' || t.includes('resetar') || t.includes('limpar campos')) {
-      const which = panelLogin.classList.contains('active') ? 'login' : 'cadastro';
-      clearForm(which);
-      speak('Campos limpos');
-    } else {
-      speak('Comando não reconhecido. Tente: ir para login, ir para cadastro, e-mail, senha, entrar, cadastrar, limpar.');
-      setVoiceStatus('Comando não reconhecido');
+  /** Foca no próximo elemento focável do painel ativo */
+  function focusNext() {
+    const els   = getFocusableElements();
+    const curr  = document.activeElement;
+    const idx   = els.indexOf(curr);
+    const next  = els[idx + 1] ?? els[0];
+    next.focus();
+    const name = getFieldName(next);
+    speak(`Indo para ${name}`);
+    updateVoicePanel({ lastCommand: `próximo campo → ${name}` });
+  }
+
+  /** Foca no elemento anterior focável do painel ativo */
+  function focusPrev() {
+    const els   = getFocusableElements();
+    const curr  = document.activeElement;
+    const idx   = els.indexOf(curr);
+    const prev  = els[idx - 1] ?? els[els.length - 1];
+    prev.focus();
+    const name = getFieldName(prev);
+    speak(`Indo para ${name}`);
+    updateVoicePanel({ lastCommand: `campo anterior → ${name}` });
+  }
+
+  /** Fala o nome do campo atualmente focado */
+  function announceCurrentField() {
+    const curr = document.activeElement;
+    if (!curr || curr === document.body) {
+      speak('Nenhum campo selecionado.');
+      return;
+    }
+    const name = getFieldName(curr);
+    speak(`Você está em: ${name}`);
+    updateVoicePanel({ lastCommand: `qual campo → ${name}` });
+  }
+
+  /* ──────────────────────────────────────────────────────
+   * Painel visual de voz
+   * ────────────────────────────────────────────────────── */
+
+  /**
+   * Atualiza o painel visual de status de voz.
+   * @param {{ status?: string, lastCommand?: string }} opts
+   */
+  function updateVoicePanel({ status, lastCommand } = {}) {
+    const panel      = $('voice-panel');
+    const statusEl   = $('vp-status');
+    const commandEl  = $('vp-command');
+
+    if (status !== undefined) {
+      statusEl.textContent = status;
+      panel.className = status.includes('Escutando')
+        ? 'voice-panel listening'
+        : 'voice-panel';
+    }
+
+    if (lastCommand !== undefined) {
+      commandEl.textContent = `Você disse: ${lastCommand}`;
     }
   }
 
-  /** Instancia e configura o SpeechRecognition */
-  function initRecognition() {
-    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRec) {
-      showToast('Reconhecimento de voz não suportado neste navegador.', 'error');
-      return null;
+  /* ──────────────────────────────────────────────────────
+   * Normalização de texto para comandos de voz
+   * ────────────────────────────────────────────────────── */
+
+  /**
+   * Normaliza o texto para comparação flexível
+   * - Remove acentos
+   * - Remove pontuação (hífen, vírgula, ponto, etc.)
+   * - Converte para minúsculo
+   */
+  function normalizeText(text) {
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+      .replace(/[.,;:!?\-_()\[\]{}'"`~@#$%^&*+=<>/\\|]/g, '') // Remove pontuação
+      .trim();
+  }
+
+  /* ──────────────────────────────────────────────────────
+   * Interpretação de comandos de voz (MATCH FLEXÍVEL)
+   * ────────────────────────────────────────────────────── */
+
+  function voiceAction(text) {
+    const normalizedText = normalizeText(text);
+    updateVoicePanel({ lastCommand: text });
+
+    /* ── Navegação entre campos ── */
+    if (normalizedText.includes('proximo') || normalizedText === 'descer' || normalizedText.includes('proximo campo')) {
+      focusNext(); return;
+    }
+    if (normalizedText.includes('anterior') || normalizedText === 'subir' || normalizedText.includes('campo anterior') || normalizedText.includes('voltar campo')) {
+      focusPrev(); return;
+    }
+    if (normalizedText.includes('qual campo') || normalizedText.includes('onde estou') || normalizedText.includes('campo atual')) {
+      announceCurrentField(); return;
     }
 
-    const rec          = new SpeechRec();
-    rec.lang           = 'pt-BR';
-    rec.continuous     = true;
-    rec.interimResults = false;
+    /* ── Troca de painel ── */
+    if (normalizedText.includes('ir para login') || normalizedText.includes('tela de login') || normalizedText.includes('voltar login')) {
+      speak('Indo para login'); switchTab(true); tabLogin.focus(); return;
+    }
+    if (normalizedText.includes('ir para cadastro') || normalizedText.includes('tela de cadastro') || normalizedText.includes('novo cadastro')) {
+      speak('Indo para cadastro'); switchTab(false); tabCadastro.focus(); return;
+    }
 
-    rec.onstart = () => {
+    /* ── Foco direto em campos ── */
+    if (normalizedText.includes('nome') && !normalizedText.includes('email') && !normalizedText.includes('senha')) {
+      const el = $('cad-nome');
+      if (!el.closest('[hidden]')) { el.focus(); speak('Campo nome'); }
+      else speak('Vá para o formulário de cadastro primeiro.');
+      return;
+    }
+    if (normalizedText.includes('email')) {
+      const el = panelLogin.classList.contains('active') ? $('login-email') : $('cad-email');
+      el.focus(); speak('Campo e-mail'); return;
+    }
+    if (normalizedText.includes('senha') && !normalizedText.includes('confirmar')) {
+      const el = panelLogin.classList.contains('active') ? $('login-senha') : $('cad-senha');
+      el.focus(); speak('Campo senha'); return;
+    }
+    if (normalizedText.includes('confirmar senha') || normalizedText.includes('confirma senha') || normalizedText === 'confirmar') {
+      const el = $('cad-confirmar');
+      if (!el.closest('[hidden]')) { el.focus(); speak('Campo confirmar senha'); }
+      else speak('Vá para o cadastro primeiro.');
+      return;
+    }
+
+    /* ── Ações de formulário ── */
+    if (normalizedText.includes('entrar') || normalizedText.includes('fazer login') || normalizedText.includes('logar') || normalizedText.includes('acessar')) {
+      if (panelLogin.classList.contains('active')) { speak('Entrando'); $('btn-entrar').click(); }
+      else speak('Vá para o login primeiro.');
+      return;
+    }
+    if (normalizedText.includes('cadastrar') || normalizedText.includes('criar conta') || normalizedText.includes('registrar')) {
+      if (panelCadastro.classList.contains('active')) { speak('Cadastrando'); $('btn-cadastrar').click(); }
+      else speak('Vá para o cadastro primeiro.');
+      return;
+    }
+    if (normalizedText.includes('limpar') || normalizedText.includes('resetar') || normalizedText.includes('limpar campos') || normalizedText.includes('apagar tudo')) {
+      const which = panelLogin.classList.contains('active') ? 'login' : 'cadastro';
+      clearForm(which); speak('Campos limpos'); return;
+    }
+
+    
+ 
+  }
+
+  /* ──────────────────────────────────────────────────────
+   * Guia por Voz – Web Speech API (contínuo)
+   * ────────────────────────────────────────────────────── */
+
+  const voiceBtn  = $('voice-btn');
+  let recognition = null;
+  let isListening = false;
+
+  /** Verifica suporte e retorna true/false */
+  function checkSupport() {
+    const supported = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+    if (!supported) {
+      showToast('Seu navegador não suporta reconhecimento de voz. Use Chrome ou Edge.', 'error');
+      voiceBtn.disabled = true;
+      voiceBtn.title    = 'Não suportado neste navegador';
+      updateVoicePanel({
+        status: '⚠️ Não suportado',
+        lastCommand: 'Use Chrome ou Edge para comandos de voz'
+      });
+    }
+    return supported;
+  }
+
+  function startVoice() {
+    if (!checkSupport()) return;
+
+    const SpeechRec    = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition        = new SpeechRec();
+    recognition.lang           = 'pt-BR';
+    recognition.continuous     = true;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
       isListening = true;
-      voiceBtn.classList.add('listening');
-      voiceBtn.textContent = '🔴 Ouvindo…';
+      voiceBtn.textContent = '🔇 Desativar Voz';
       voiceBtn.setAttribute('aria-pressed', 'true');
-      setVoiceStatus('🎙️ Ouvindo… fale um comando');
-      speak('Guia por voz ativado. Fale um comando.');
+      voiceBtn.classList.add('listening');
+      updateVoicePanel({ status: '🎤 Escutando...' });
+      speak('Comandos de voz ativados');
+      announce('Reconhecimento de voz iniciado');
     };
 
-    rec.onend = () => {
-      if (isListening) rec.start(); // mantém ativo enquanto não for desligado
-    };
-
-    rec.onerror = ev => {
-      if (ev.error === 'not-allowed') {
-        showToast('Permissão de microfone negada.', 'error');
-        stopVoice();
+    // Reinicia automaticamente se parar (ex: silêncio longo)
+    recognition.onend = () => {
+      if (isListening) {
+        try { recognition.start(); } catch (_) { /* já iniciando */ }
       }
     };
 
-    rec.onresult = ev => {
+    recognition.onerror = ev => {
+      if (ev.error === 'not-allowed') {
+        showToast('Permissão de microfone negada. Habilite nas configurações do navegador.', 'error');
+        stopVoice();
+      } else if (ev.error === 'network') {
+        showToast('Erro de rede no reconhecimento de voz.', 'error');
+      }
+      // 'no-speech' e 'aborted' são ignorados — o onend vai reiniciar
+    };
+
+    recognition.onresult = ev => {
       const result = ev.results[ev.results.length - 1];
       if (result.isFinal) {
-        const transcript = result[0].transcript;
-        setVoiceStatus(`Ouvi: "${transcript}"`);
-        voiceAction(transcript);
+        voiceAction(result[0].transcript.trim());
       }
     };
 
-    return rec;
+    recognition.start();
   }
 
-  /** Para o reconhecimento de voz e restaura o botão */
   function stopVoice() {
     isListening = false;
     if (recognition) { recognition.stop(); recognition = null; }
-    voiceBtn.classList.remove('listening');
-    voiceBtn.innerHTML = '🎤 Guia por Voz';
+    voiceBtn.textContent = '🎤 Ativar Voz';
     voiceBtn.setAttribute('aria-pressed', 'false');
-    setVoiceStatus('Guia por voz desativado', true);
-    speak('Guia por voz desativado.');
-    setTimeout(() => setVoiceStatus('', false), 2000);
+    voiceBtn.classList.remove('listening');
+    updateVoicePanel({ status: '🔇 Desativado', lastCommand: '—' });
+    speak('Comandos de voz desativados');
+    announce('Reconhecimento de voz encerrado');
   }
 
   voiceBtn.addEventListener('click', () => {
-    if (isListening) {
-      stopVoice();
-    } else {
-      recognition = initRecognition();
-      if (recognition) recognition.start();
-    }
+    isListening ? stopVoice() : startVoice();
   });
 
   /* ──────────────────────────────────────────────────────
@@ -434,5 +520,21 @@
       if (isListening) stopVoice();
     }
   });
+
+  /* ──────────────────────────────────────────────────────
+   * Inicialização
+   * ────────────────────────────────────────────────────── */
+
+  // Verifica suporte silenciosamente ao carregar
+  if (!(window.SpeechRecognition || window.webkitSpeechRecognition)) {
+    voiceBtn.disabled = true;
+    voiceBtn.title    = 'Reconhecimento de voz não suportado neste navegador (use Chrome/Edge)';
+    updateVoicePanel({
+      status: '⚠️ Não suportado',
+      lastCommand: 'Use Chrome ou Edge'
+    });
+  } else {
+    updateVoicePanel({ status: '🔇 Desativado', lastCommand: '—' });
+  }
 
 })();
