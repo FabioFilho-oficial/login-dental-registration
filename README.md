@@ -59,6 +59,7 @@ Clique no botão flutuante **🎤 Guia por Voz** e fale um dos comandos:
 | `"entrar"` | Submete o formulário de login |
 | `"cadastrar"` | Submete o formulário de cadastro |
 | `"limpar"` / `"resetar"` | Limpa todos os campos do painel ativo |
+| `"proximo"` | Vai pro proximo campo |
 
 > **Requer:** permissão de microfone no navegador. Compatível com Chrome e Edge. Firefox tem suporte parcial.
 
