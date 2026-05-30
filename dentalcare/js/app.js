@@ -18,12 +18,52 @@
     requestAnimationFrame(() => { live.textContent = msg; });
   }
 
+  /**
+   * Flag global: true enquanto o sistema estiver reproduzindo fala.
+   * Bloqueia o microfone durante a síntese para evitar eco em loop.
+   */
+  let isSpeaking = false;
+
+  /**
+   * Tempo (ms) que o microfone permanece surdo APÓS o fim da fala
+   * sintetizada, para absorver eco residual do ambiente.
+   */
+  const DEAF_DELAY = 600;
+
+  /**
+   * Fala um texto e suprime o microfone enquanto fala.
+   * Estratégias anti-eco:
+   *  1. isSpeaking = true  → onresult descarta tudo durante a fala
+   *  2. recognition.stop() → fecha o microfone fisicamente
+   *  3. Após fala + DEAF_DELAY, reabre somente se isListening for true
+   */
   function speak(text) {
     if (!window.speechSynthesis) return;
+
     speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'pt-BR';
-    u.rate = 1.05;
+
+    // Fecha microfone ANTES de começar a falar
+    isSpeaking = true;
+    if (typeof recognition !== 'undefined' && recognition) {
+      try { recognition.stop(); } catch (_) { /* já parado */ }
+    }
+
+    const u  = new SpeechSynthesisUtterance(text);
+    u.lang   = 'pt-BR';
+    u.rate   = 1.05;
+
+    const reopen = () => {
+      setTimeout(() => {
+        isSpeaking = false;
+        if (isListening && recognition) {
+          try { recognition.start(); } catch (_) { /* já iniciando */ }
+        }
+      }, DEAF_DELAY);
+    };
+
+    u.onend   = reopen;
+    u.onerror = reopen; // fallback se onend não disparar (bug Chrome)
+
     speechSynthesis.speak(u);
   }
 
@@ -338,91 +378,174 @@
   }
 
   /* ──────────────────────────────────────────────────────
-   * Normalização de texto para comandos de voz
+   * Normalização do texto reconhecido
    * ────────────────────────────────────────────────────── */
 
   /**
-   * Normaliza o texto para comparação flexível
-   * - Remove acentos
-   * - Remove pontuação (hífen, vírgula, ponto, etc.)
-   * - Converte para minúsculo
+   * Normaliza o transcript para comparação flexível:
+   *  1. Minúsculas
+   *  2. Remove acentos (NFD + strip combining marks)
+   *  3. Remove pontuação e hífens
+   *  4. Colapsa espaços extras
+   *
+   * Exemplos:
+   *   "E-mail"       → "email"
+   *   "próximo"      → "proximo"
+   *   "Confirmar."   → "confirmar"
+   *   "ir para login"→ "ir para login"
    */
-  function normalizeText(text) {
+  function normalize(text) {
     return text
       .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
-      .replace(/[.,;:!?\-_()\[\]{}'"`~@#$%^&*+=<>/\\|]/g, '') // Remove pontuação
+      .normalize('NFD')                      // decompõe acentos
+      .replace(/[\u0300-\u036f]/g, '')       // remove diacríticos
+      .replace(/[-.,!?;:'"()]/g, ' ')        // pontuação → espaço
+      .replace(/\s+/g, ' ')                  // colapsa espaços
       .trim();
   }
 
+  /**
+   * Retorna true se o texto normalizado contém QUALQUER uma das palavras-chave.
+   * @param {string} n       - texto já normalizado
+   * @param {string[]} keys  - lista de palavras/frases a testar
+   */
+  function has(n, keys) {
+    return keys.some(k => n.includes(k));
+  }
+
   /* ──────────────────────────────────────────────────────
-   * Interpretação de comandos de voz (MATCH FLEXÍVEL)
+   * Interpretação de comandos de voz
    * ────────────────────────────────────────────────────── */
 
-  function voiceAction(text) {
-    const normalizedText = normalizeText(text);
-    updateVoicePanel({ lastCommand: text });
+  function voiceAction(rawText) {
+    const n = normalize(rawText);           // texto normalizado para lógica
+    updateVoicePanel({ lastCommand: rawText });
 
-    /* ── Navegação entre campos ── */
-    if (normalizedText.includes('proximo') || normalizedText === 'descer' || normalizedText.includes('proximo campo')) {
-      focusNext(); return;
-    }
-    if (normalizedText.includes('anterior') || normalizedText === 'subir' || normalizedText.includes('campo anterior') || normalizedText.includes('voltar campo')) {
-      focusPrev(); return;
-    }
-    if (normalizedText.includes('qual campo') || normalizedText.includes('onde estou') || normalizedText.includes('campo atual')) {
-      announceCurrentField(); return;
-    }
+    // Helper: loga no console para debug
+    const dispatch = (action) => {
+      console.log(`[Voz] raw="${rawText}" | normalizado="${n}" | ação="${action}"`);
+      speak(`Comando reconhecido: ${action}`);
+    };
 
-    /* ── Troca de painel ── */
-    if (normalizedText.includes('ir para login') || normalizedText.includes('tela de login') || normalizedText.includes('voltar login')) {
-      speak('Indo para login'); switchTab(true); tabLogin.focus(); return;
-    }
-    if (normalizedText.includes('ir para cadastro') || normalizedText.includes('tela de cadastro') || normalizedText.includes('novo cadastro')) {
-      speak('Indo para cadastro'); switchTab(false); tabCadastro.focus(); return;
-    }
-
-    /* ── Foco direto em campos ── */
-    if (normalizedText.includes('nome') && !normalizedText.includes('email') && !normalizedText.includes('senha')) {
-      const el = $('cad-nome');
-      if (!el.closest('[hidden]')) { el.focus(); speak('Campo nome'); }
-      else speak('Vá para o formulário de cadastro primeiro.');
+    /* ── 1. PRÓXIMO CAMPO ─────────────────────────────── */
+    if (has(n, ['proximo', 'descer', 'avançar', 'avancar', 'ir pro proximo', 'ir para o proximo',
+                'seguinte', 'vai pro proximo', 'proximo campo', 'proxima'])) {
+      dispatch('próximo campo');
+      focusNext();
       return;
     }
-    if (normalizedText.includes('email')) {
-      const el = panelLogin.classList.contains('active') ? $('login-email') : $('cad-email');
-      el.focus(); speak('Campo e-mail'); return;
+
+    /* ── 2. CAMPO ANTERIOR ────────────────────────────── */
+    if (has(n, ['anterior', 'subir', 'voltar', 'campo de cima', 'campo anterior',
+                'campo de volta', 'voltar campo', 'campo acima', 'volta'])) {
+      dispatch('campo anterior');
+      focusPrev();
+      return;
     }
-    if (normalizedText.includes('senha') && !normalizedText.includes('confirmar')) {
-      const el = panelLogin.classList.contains('active') ? $('login-senha') : $('cad-senha');
-      el.focus(); speak('Campo senha'); return;
+
+    /* ── 3. QUAL CAMPO ESTOU ──────────────────────────── */
+    if (has(n, ['qual campo', 'onde estou', 'campo atual', 'em qual campo',
+                'qual e o campo', 'que campo'])) {
+      dispatch('qual campo estou');
+      announceCurrentField();
+      return;
     }
-    if (normalizedText.includes('confirmar senha') || normalizedText.includes('confirma senha') || normalizedText === 'confirmar') {
+
+    /* ── 4. IR PARA LOGIN ─────────────────────────────── */
+    if (has(n, ['ir para login', 'tela de login', 'voltar login', 'vai para login',
+                'abrir login', 'pagina de login', 'ir ao login', 'entrar na tela',
+                'tela login', 'formulario de login'])) {
+      dispatch('ir para login');
+      switchTab(true);
+      tabLogin.focus();
+      return;
+    }
+
+    /* ── 5. IR PARA CADASTRO ──────────────────────────── */
+    if (has(n, ['ir para cadastro', 'tela de cadastro', 'novo cadastro', 'vai para cadastro',
+                'abrir cadastro', 'pagina de cadastro', 'ir ao cadastro',
+                'tela cadastro', 'formulario de cadastro', 'criar conta'])) {
+      dispatch('ir para cadastro');
+      switchTab(false);
+      tabCadastro.focus();
+      return;
+    }
+
+    /* ── 6. CAMPO CONFIRMAR SENHA ─────────────────────── */
+    // Deve vir ANTES do bloco de "senha" para evitar falso match
+    if (has(n, ['confirmar', 'confirma', 'confirmacao', 'confirmar senha',
+                'repetir senha', 'repete a senha', 'segunda senha',
+                'campo confirmacao', 'confirme'])) {
+      dispatch('confirmar senha');
       const el = $('cad-confirmar');
-      if (!el.closest('[hidden]')) { el.focus(); speak('Campo confirmar senha'); }
-      else speak('Vá para o cadastro primeiro.');
+      if (!el.closest('[hidden]')) { el.focus(); }
+      else { speak('Vá para o formulário de cadastro primeiro.'); }
       return;
     }
 
-    /* ── Ações de formulário ── */
-    if (normalizedText.includes('entrar') || normalizedText.includes('fazer login') || normalizedText.includes('logar') || normalizedText.includes('acessar')) {
-      if (panelLogin.classList.contains('active')) { speak('Entrando'); $('btn-entrar').click(); }
-      else speak('Vá para o login primeiro.');
+    /* ── 7. CAMPO SENHA ───────────────────────────────── */
+    if (has(n, ['senha', 'campo senha', 'a senha', 'minha senha',
+                'digitar senha', 'escrever senha', 'campo de senha'])) {
+      dispatch('campo senha');
+      const el = panelLogin.classList.contains('active') ? $('login-senha') : $('cad-senha');
+      el.focus();
       return;
     }
-    if (normalizedText.includes('cadastrar') || normalizedText.includes('criar conta') || normalizedText.includes('registrar')) {
-      if (panelCadastro.classList.contains('active')) { speak('Cadastrando'); $('btn-cadastrar').click(); }
-      else speak('Vá para o cadastro primeiro.');
+
+    /* ── 8. CAMPO E-MAIL ──────────────────────────────── */
+    if (has(n, ['email', 'e mail', 'meu email', 'campo email', 'endereco de email',
+                'endereço', 'campo de email', 'digitar email', 'escrever email',
+                'vai pro email', 'campo do email', 'no email'])) {
+      dispatch('campo e-mail');
+      const el = panelLogin.classList.contains('active') ? $('login-email') : $('cad-email');
+      el.focus();
       return;
     }
-    if (normalizedText.includes('limpar') || normalizedText.includes('resetar') || normalizedText.includes('limpar campos') || normalizedText.includes('apagar tudo')) {
+
+    /* ── 9. CAMPO NOME ────────────────────────────────── */
+    if (has(n, ['nome', 'campo nome', 'meu nome', 'digitar nome',
+                'escrever nome', 'campo do nome', 'inserir nome'])) {
+      dispatch('campo nome');
+      const el = $('cad-nome');
+      if (!el.closest('[hidden]')) { el.focus(); }
+      else { speak('Vá para o formulário de cadastro primeiro.'); }
+      return;
+    }
+
+    /* ── 10. ENTRAR / SUBMETER LOGIN ──────────────────── */
+    if (has(n, ['entrar', 'fazer login', 'logar', 'acessar', 'submeter login',
+                'enviar login', 'clica em entrar', 'botao entrar',
+                'confirmar login', 'efetuar login'])) {
+      dispatch('entrar');
+      if (panelLogin.classList.contains('active')) { $('btn-entrar').click(); }
+      else { speak('Vá para o formulário de login primeiro.'); }
+      return;
+    }
+
+    /* ── 11. CADASTRAR / SUBMETER CADASTRO ────────────── */
+    if (has(n, ['cadastrar', 'registrar', 'criar usuario', 'salvar cadastro',
+                'enviar cadastro', 'submeter cadastro', 'clica em cadastrar',
+                'botao cadastrar', 'finalizar cadastro', 'concluir cadastro'])) {
+      dispatch('cadastrar');
+      if (panelCadastro.classList.contains('active')) { $('btn-cadastrar').click(); }
+      else { speak('Vá para o formulário de cadastro primeiro.'); }
+      return;
+    }
+
+    /* ── 12. LIMPAR CAMPOS ────────────────────────────── */
+    if (has(n, ['limpar', 'resetar', 'apagar tudo', 'limpar campos',
+                'zerar campos', 'limpar formulario', 'apagar campos',
+                'resetar campos', 'reset', 'limpa tudo'])) {
+      dispatch('limpar campos');
       const which = panelLogin.classList.contains('active') ? 'login' : 'cadastro';
-      clearForm(which); speak('Campos limpos'); return;
+      clearForm(which);
+      return;
     }
 
-    
- 
+    /* ── Não reconhecido ─────────────────────────────── */
+    console.log(`[Voz] raw="${rawText}" | normalizado="${n}" | ação="não reconhecido"`);
+    speak('Comando não reconhecido. Tente: e-mail, senha, próximo campo, entrar, cadastrar.');
+    updateVoicePanel({ lastCommand: `"${rawText}" — não reconhecido` });
   }
 
   /* ──────────────────────────────────────────────────────
@@ -467,9 +590,11 @@
       announce('Reconhecimento de voz iniciado');
     };
 
-    // Reinicia automaticamente se parar (ex: silêncio longo)
+    // Reinicia automaticamente ao parar por silêncio,
+    // MAS não reabre se o sistema estiver falando (isSpeaking = true),
+    // pois speak() já cuida de reabrir depois do DEAF_DELAY.
     recognition.onend = () => {
-      if (isListening) {
+      if (isListening && !isSpeaking) {
         try { recognition.start(); } catch (_) { /* já iniciando */ }
       }
     };
@@ -485,6 +610,11 @@
     };
 
     recognition.onresult = ev => {
+      // Ignora tudo enquanto o sistema estiver falando (anti-eco)
+      if (isSpeaking) {
+        console.log('[Voz] resultado ignorado — sistema falando (anti-eco)');
+        return;
+      }
       const result = ev.results[ev.results.length - 1];
       if (result.isFinal) {
         voiceAction(result[0].transcript.trim());
@@ -496,12 +626,13 @@
 
   function stopVoice() {
     isListening = false;
+    isSpeaking  = false; // reseta flag anti-eco
+    speechSynthesis.cancel(); // interrompe fala em curso
     if (recognition) { recognition.stop(); recognition = null; }
     voiceBtn.textContent = '🎤 Ativar Voz';
     voiceBtn.setAttribute('aria-pressed', 'false');
     voiceBtn.classList.remove('listening');
     updateVoicePanel({ status: '🔇 Desativado', lastCommand: '—' });
-    speak('Comandos de voz desativados');
     announce('Reconhecimento de voz encerrado');
   }
 
