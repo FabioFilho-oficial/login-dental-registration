@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DentalCare – Acesso ao Portal</title>
+
+  <!-- Fontes -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- Acessibilidade: skip link -->
+  <a href="#main-form" class="skip-link">Pular para o formulário</a>
+
+  <!-- Live region para leitores de tela (aria-live) -->
+  <div id="live-region" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Toast de notificação -->
+  <div id="toast" role="alert" aria-live="assertive" aria-atomic="true">
+    <span class="toast-icon" aria-hidden="true"></span>
+    <span id="toast-msg"></span>
+  </div>
+
+  <!-- ── Card principal ─────────────────────────────────── -->
+  <div class="card" role="main">
+
+    <!-- Cabeçalho / Branding -->
+    <header class="brand" aria-label="DentalCare Portal">
+      <div class="brand-logo" aria-hidden="true">
+        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M24 6C18.477 6 13.5 9.5 13.5 15c0 3.2.8 5.8 1.8 8.2
+               1.4 3.4 2.4 6.8 2.7 10.8.2 2.6 1.5 8 4.8 8 1.6 0
+               2.3-1.6 2.7-4.8.3-2.4.7-4.8 1.5-4.8s1.2 2.4 1.5 4.8
+               C28.7 40.4 29.4 42 31 42c3.3 0 4.6-5.4 4.8-8
+               .3-4 1.3-7.4 2.7-10.8 1-2.4 1.8-5 1.8-8.2
+               0-5.5-5-9-16.3-9z"
+            fill="#4cc9a0"
+          />
+          <path d="M18 16c1.5-1.5 8.7-2 12 0" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="brand-name">Dental<span>Care</span></div>
+      <p class="brand-tagline">Portal do Paciente</p>
+    </header>
+
+    <!-- ── Abas de navegação ──────────────────────────────── -->
+    <div role="tablist" class="tabs" aria-label="Selecionar formulário">
+      <button
+        id="tab-login"
+        role="tab"
+        aria-selected="true"
+        aria-controls="panel-login"
+        class="tab-btn"
+        tabindex="0"
+      >Entrar</button>
+
+      <button
+        id="tab-cadastro"
+        role="tab"
+        aria-selected="false"
+        aria-controls="panel-cadastro"
+        class="tab-btn"
+        tabindex="-1"
+      >Cadastrar</button>
+    </div>
+
+    <!-- ── Formulários ────────────────────────────────────── -->
+    <div class="forms-wrap" id="main-form">
+
+      <!-- Painel: LOGIN -->
+      <section
+        id="panel-login"
+        role="tabpanel"
+        aria-labelledby="tab-login"
+        class="form-panel active"
+      >
+        <form id="form-login" novalidate aria-label="Formulário de login">
+          <fieldset>
+            <legend>Bem-vindo de volta</legend>
+
+            <!-- E-mail -->
+            <div class="field">
+              <label for="login-email">E-mail</label>
+              <div class="input-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round" aria-hidden="true">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/>
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+                <input
+                  type="email"
+                  id="login-email"
+                  name="email"
+                  autocomplete="email"
+                  placeholder="seu@email.com"
+                  aria-required="true"
+                  aria-describedby="login-email-msg"
+                />
+              </div>
+              <p class="field-msg" id="login-email-msg" role="alert"></p>
+            </div>
+
+            <!-- Senha -->
+            <div class="field">
+              <label for="login-senha">Senha</label>
+              <div class="input-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round" aria-hidden="true">
+                  <rect x="3" y="11" width="18" height="11" rx="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                <input
+                  type="password"
+                  id="login-senha"
+                  name="senha"
+                  autocomplete="current-password"
+                  placeholder="••••••••"
+                  aria-required="true"
+                  aria-describedby="login-senha-msg"
+                />
+                <button type="button" class="pwd-toggle" aria-label="Mostrar senha" data-target="login-senha">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                </button>
+              </div>
+              <p class="field-msg" id="login-senha-msg" role="alert"></p>
+            </div>
+
+            <button type="submit" class="btn-primary" id="btn-entrar">Entrar</button>
+          </fieldset>
+        </form>
+      </section>
+
+      <!-- Painel: CADASTRO -->
+      <section
+        id="panel-cadastro"
+        role="tabpanel"
+        aria-labelledby="tab-cadastro"
+        class="form-panel"
+        hidden
+      >
+        <form id="form-cadastro" novalidate aria-label="Formulário de cadastro">
+          <fieldset>
+            <legend>Criar sua conta</legend>
+
+            <!-- Nome -->
+            <div class="field">
+              <label for="cad-nome">Nome completo</label>
+              <div class="input-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="8" r="4"/>
+                  <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                </svg>
+                <input
+                  type="text"
+                  id="cad-nome"
+                  name="nome"
+                  autocomplete="name"
+                  placeholder="Maria da Silva"
+                  aria-required="true"
+                  aria-describedby="cad-nome-msg"
+                />
+              </div>
+              <p class="field-msg" id="cad-nome-msg" role="alert"></p>
+            </div>
+
+            <!-- E-mail -->
+            <div class="field">
+              <label for="cad-email">E-mail</label>
+              <div class="input-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round" aria-hidden="true">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/>
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+                <input
+                  type="email"
+                  id="cad-email"
+                  name="email"
+                  autocomplete="email"
+                  placeholder="seu@email.com"
+                  aria-required="true"
+                  aria-describedby="cad-email-msg"
+                />
+              </div>
+              <p class="field-msg" id="cad-email-msg" role="alert"></p>
+            </div>
+
+            <!-- Senha -->
+            <div class="field">
+              <label for="cad-senha">Senha</label>
+              <div class="input-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round" aria-hidden="true">
+                  <rect x="3" y="11" width="18" height="11" rx="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                <input
+                  type="password"
+                  id="cad-senha"
+                  name="senha"
+                  autocomplete="new-password"
+                  placeholder="Mínimo 6 caracteres"
+                  aria-required="true"
+                  aria-describedby="cad-senha-msg"
+                />
+                <button type="button" class="pwd-toggle" aria-label="Mostrar senha" data-target="cad-senha">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                </button>
+              </div>
+              <p class="field-msg" id="cad-senha-msg" role="alert"></p>
+            </div>
+
+            <!-- Confirmar senha -->
+            <div class="field">
+              <label for="cad-confirmar">Confirmar senha</label>
+              <div class="input-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                <input
+                  type="password"
+                  id="cad-confirmar"
+                  name="confirmar"
+                  autocomplete="new-password"
+                  placeholder="Repita a senha"
+                  aria-required="true"
+                  aria-describedby="cad-confirmar-msg"
+                />
+                <button type="button" class="pwd-toggle" aria-label="Mostrar confirmação de senha" data-target="cad-confirmar">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                </button>
+              </div>
+              <p class="field-msg" id="cad-confirmar-msg" role="alert"></p>
+            </div>
+
+            <button type="submit" class="btn-primary" id="btn-cadastrar">Cadastrar</button>
+          </fieldset>
+        </form>
+      </section>
+    </div>
+
+    <div class="card-footer">
+      🔒 Seus dados estão protegidos e criptografados
+    </div>
+  </div>
+  <!-- /card -->
+
+  <!-- Botão flutuante de guia por voz -->
+  <button id="voice-btn" aria-label="Ativar guia por voz" aria-pressed="false">
+    🎤 Guia por Voz
+  </button>
+
+  <!-- Status do reconhecimento de voz -->
+  <div id="voice-status" role="status" aria-live="polite"></div>
+
+  <!-- Scripts -->
+  <script src="js/app.js"></script>
+</body>
+</html>
