@@ -273,12 +273,19 @@
   </div>
   <!-- /card -->
 
-  <!-- Botão flutuante de guia por voz -->
-  <button id="voice-btn" aria-label="Ativar guia por voz" aria-pressed="false">
-    🎤 Guia por Voz
+  <!-- Painel visual de status de voz -->
+  <div id="voice-panel" class="voice-panel" role="region" aria-label="Status do guia por voz">
+    <p class="vp-label">Status</p>
+    <p id="vp-status">🔇 Desativado</p>
+    <p id="vp-command" aria-live="polite">—</p>
+  </div>
+
+  <!-- Botão principal de voz -->
+  <button id="voice-btn" aria-label="Ativar reconhecimento de voz" aria-pressed="false">
+    🎤 Ativar Voz
   </button>
 
-  <!-- Status do reconhecimento de voz -->
+  <!-- Status legado (oculto via CSS, mantido para compatibilidade) -->
   <div id="voice-status" role="status" aria-live="polite"></div>
 
   <!-- Scripts -->
